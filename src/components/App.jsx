@@ -1,49 +1,59 @@
 import React, { useEffect, useState } from 'react';
+import { useSelector, useDispatch } from 'react-redux';
 import { ContactForm } from './ContactForm/ContactForm';
 import { Filter } from './Filter/Filter';
 import { ContactList } from './ContactList/ContactList';
+import {
+  addContact,
+  deleteContact,
+  updateFilter,
+} from '../components/redux/contactSlice';
 
 const LOCAL_KEY = 'phoneContacts';
 
 export const App = () => {
-  const [contacts, setContacts] = useState([]);
-  const [filter, setFilter] = useState('');
+  const contacts = useSelector(state => state.contacts.contacts);
+  const filter = useSelector(state => state.contacts.filter);
+  const dispatch = useDispatch();
+  const [isDataLoaded, setDataLoaded] = useState(false);
 
   useEffect(() => {
-    const contactsFormLocalStorage = JSON.parse(
-      localStorage.getItem(LOCAL_KEY)
-    );
+    if (!isDataLoaded) {
+      const contactsFromLocalStorage = JSON.parse(
+        localStorage.getItem(LOCAL_KEY)
+      );
 
-    if (contactsFormLocalStorage.length) {
-      console.log('pyk');
-      setContacts(contactsFormLocalStorage);
+      if (contactsFromLocalStorage) {
+        dispatch(addContact(contactsFromLocalStorage));
+        setDataLoaded(true);
+      }
     }
-  }, []);
+  }, [dispatch, isDataLoaded]);
 
   useEffect(() => {
-    localStorage.setItem(LOCAL_KEY, JSON.stringify(contacts));
-  }, [contacts]);
+    if (isDataLoaded) {
+      localStorage.setItem(LOCAL_KEY, JSON.stringify(contacts));
+    }
+  }, [contacts, isDataLoaded]);
 
   const handleAddContact = newContact => {
-    setContacts(prevState => [...prevState, newContact]);
-    console.log(newContact);
+    dispatch(addContact(newContact));
   };
 
   const handleFilterChange = e => {
-    const newFilter = e.target.value.toLowerCase();
-    setFilter(newFilter);
+    dispatch(updateFilter(e.target.value.toLowerCase()));
   };
 
   const handleDeleteContact = id => {
-    setContacts(prevState => prevState.filter(contact => contact.id !== id));
+    dispatch(deleteContact(id));
   };
 
   const filteredContacts = contacts.filter(
-    contact => contact.name && contact.name.toLowerCase().includes(filter)
+    contact => contact.name && contact.name.toLowerCase().includes(filter || '')
   );
 
   return (
-    <div>
+    <>
       <h1>Phonebook</h1>
       <ContactForm onAddContact={handleAddContact} contacts={contacts} />
       <h2>Contacts</h2>
@@ -52,6 +62,6 @@ export const App = () => {
         contacts={filteredContacts}
         onDeleteContact={handleDeleteContact}
       />
-    </div>
+    </>
   );
 };
